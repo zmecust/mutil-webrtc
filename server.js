@@ -1,4 +1,4 @@
-var https = require('https');
+var http = require('http').Server();
 var fs = require('fs');
 var IO = require('socket.io');
 
@@ -7,7 +7,7 @@ var redisClient = redis.createClient;
 var pub = redisClient(6379, '127.0.0.1');
 var sub = redisClient(6379, '127.0.0.1');
 
-//配置ssl证书
+/*//配置ssl证书
 var options = {
   key: fs.readFileSync('./ssl/key.pem'),
   cert: fs.readFileSync('./ssl/cert.pem'),
@@ -15,9 +15,9 @@ var options = {
 };
 
 var server = https.createServer(options).listen(443);
-console.log("The HTTPS server is up and running");
+console.log("The HTTPS server is up and running");*/
 
-var io = IO(server);
+var io = IO(http);
 console.log("Socket Secure server is up and running.");
 
 // 房间用户名单

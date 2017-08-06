@@ -43,7 +43,7 @@
 </template>
 
 <script>
-  const socket = io.connect('http://115.28.170.217:443');
+  const socket = io.connect('http://localhost:3000');
   var stream;
   var peerConn;
   var connectedUser;
