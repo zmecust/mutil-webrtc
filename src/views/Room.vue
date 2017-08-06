@@ -67,7 +67,6 @@
             this.handleLogin(data);
             break;
           case "offer":
-            console.log(data.offer);
             this.handleOffer(data);
             break;
           case "candidate":
@@ -107,9 +106,8 @@
         } else {
           this.show = false;
           this.users = data.users;
-          //**********************
-          //Starting a peer connection
-          //**********************
+
+          /*----------Starting a peer connection----------*/
           //getting local video stream
           navigator.webkitGetUserMedia({ video: true, audio: true }, function (myStream) {
             stream = myStream;

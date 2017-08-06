@@ -1,11 +1,13 @@
 var https = require('https');
 var fs = require('fs');
 var IO = require('socket.io');
+
 var redis = require('redis');
 var redisClient = redis.createClient;
 var pub = redisClient(6379, '127.0.0.1');
 var sub = redisClient(6379, '127.0.0.1');
 
+//配置ssl证书
 var options = {
   key: fs.readFileSync('./ssl/key.pem'),
   cert: fs.readFileSync('./ssl/cert.pem'),
@@ -23,13 +25,13 @@ var roomUsers = {};
 var roomInfo = {};
 
 io.on('connect', function (socket) {
-  var roomID = '';
-  var user = '';
+  var roomID = '';  //房间号
+  var user = '';   //当前登录用户名
 
   socket.on('message', function(data) {
     var data = JSON.parse(data);
     switch (data.event) {
-      //when a user tries to join
+      //当有新用户加入时
       case "join":
         console.log("User joined", data.name);
         user = data.name;
@@ -39,7 +41,7 @@ io.on('connect', function (socket) {
           roomInfo[roomID] = [];
           sub.subscribe(roomID);
         }
-        //if anyone is logged in with this username then refuse
+        //当昵称重复时
         if(roomInfo[roomID][user]) {
           pub.publish(roomID, JSON.stringify({
             "event": "join",
@@ -47,7 +49,7 @@ io.on('connect', function (socket) {
             "success": false
           }));
         } else {
-          //save user connection on the server
+          //保存用户信息于该房间
           roomUsers[roomID].push(user);
           roomInfo[roomID][user] = socket;
           socket.name = user;
@@ -61,7 +63,7 @@ io.on('connect', function (socket) {
         break;
 
       case "offer":
-        //for ex. UserA wants to call UserB
+        //for example: UserA wants to call UserB
         console.log("Sending offer to: ", data.connectedUser);
         //if UserB exists then send him offer details
         var conn = roomInfo[roomID][data.connectedUser];
