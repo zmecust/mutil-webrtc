@@ -24,6 +24,9 @@
                                 <p>{{user}}</p>
                             </div>
                         </li>
+                        <li class="list-group-item">
+                            <button class="btn-success btn" v-show="accept_video" @click="accept">您有视频邀请，接受?</button>
+                        </li>
                     </ul>
                 </div>
                 <div class="col-md-9">
@@ -33,7 +36,7 @@
                         <div class="col-md-12">
                             <input class="form-control" type="text" v-model="call_username" placeholder="username to call"/>
                             <button class="btn-success btn" @click="call">Call</button>
-                            <button class="btn-danger btn">Hang Up</button>
+                            <button class="btn-danger btn" @click="hangUp">Hang Up</button>
                         </div>
                     </div>
                 </div>
@@ -47,6 +50,7 @@
   var stream;
   var peerConn;
   var connectedUser;
+  var acceptData;
 
   export default {
     data() {
@@ -57,7 +61,8 @@
         users: '',
         call_username: '',
         local_video: '',
-        remote_video: ''
+        remote_video: '',
+        accept_video: false
       }
     },
     mounted() {
@@ -67,7 +72,8 @@
             this.handleLogin(data);
             break;
           case "offer":
-            this.handleOffer(data);
+            acceptData = data;
+            this.handleOffer();
             break;
           case "candidate":
             this.handleCandidate(data);
@@ -77,6 +83,9 @@
             break;
           case "answer":
             this.handleAnswer(data);
+            break;
+          case "leave":
+            this.handleLeave();
             break;
           default:
             break;
@@ -154,8 +163,12 @@
           });
         }
       },
-      handleOffer(data) {
+      handleOffer() {
+        this.accept_video = true;
+      },
+      accept() {
         var self = this;
+        var data = acceptData;
         connectedUser = data.name;
         peerConn.setRemoteDescription(new RTCSessionDescription(data.offer));
         //create an answer to an offer
@@ -168,6 +181,7 @@
         }, function (error) {
           alert("Error when creating an answer");
         });
+        this.accept_video = false;
       },
       handleMsg(data) {
         console.log(data.message);
@@ -177,6 +191,19 @@
       },
       handleCandidate(data) {
         peerConn.addIceCandidate(new RTCIceCandidate(data.candidate));
+      },
+      hangUp() {
+        this.send({
+          event: "leave"
+        });
+        this.handleLeave();
+      },
+      handleLeave() {
+        connectedUser = null;
+        this.remote_video = null;
+        peerConn.close();
+        peerConn.onicecandidate = null;
+        peerConn.onaddstream = null;
       }
     }
   }

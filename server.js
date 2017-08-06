@@ -106,8 +106,37 @@ io.on('connect', function (socket) {
           });
         }
         break;
+
+      case "leave":
+        console.log("Disconnecting from", data.connectedUser);
+        var conn = roomInfo[roomID][data.connectedUser];
+        socket.otherName = null;
+        //notify the other user so he can disconnect his peer connection
+        if(conn != null) {
+          sendTo(conn, {
+            event: "leave"
+          });
+        }
+        break;
     }
-  })
+  });
+
+  socket.on("close", function() {
+    if(socket.name) {
+      delete roomInfo[roomID][data.connectedUser];
+      delete roomUsers[roomID][data.connectedUser];
+      if(socket.otherName) {
+        console.log("Disconnecting from ", socket.otherName);
+        var conn = roomUsers[roomID][socket.otherName];
+        socket.otherName = null;
+        if(conn != null) {
+          sendTo(conn, {
+            type: "leave"
+          });
+        }
+      }
+    }
+  });
 });
 
 sub.on("subscribe", function(channel) {
