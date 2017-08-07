@@ -1,6 +1,6 @@
-var express = require('express');
-var app = express();
-var https = require('https');
+/*var express = require('express');
+var app = express();*/
+var http = require('http').Server();
 var fs = require('fs');
 var IO = require('socket.io');
 
@@ -9,26 +9,25 @@ var redisClient = redis.createClient;
 var pub = redisClient(6379, '127.0.0.1');
 var sub = redisClient(6379, '127.0.0.1');
 
-//配置ssl证书
-var options = {
-  key: fs.readFileSync('./ssl/key.pem'),
-  cert: fs.readFileSync('./ssl/cert.pem'),
-  passphrase: '123456789'
-};
+/*var options = {
+ key: fs.readFileSync('/etc/letsencrypt/live/laravue.org/privkey.pem'),
+ cert: fs.readFileSync('/etc/letsencrypt/live/laravue.org/cert.pem'),
+ passphrase: '123456789'
+ };
 
-app.use(express.static('dist'));
+ app.use(express.static('dist'));
 
-app.use(function(req, res, next) {
-  if(req.headers['x-forwarded-proto'] === 'http') {
-    return res.redirect(['https://', req.get('Host'), req.url].join(''));
-  }
-  next();
-});
+ app.use(function(req, res, next) {
+ if(req.headers['x-forwarded-proto']==='http') {
+ return res.redirect(['https://', req.get('Host'), req.url].join(''));
+ }
+ next();
+ });
 
-var server = https.createServer(options, app).listen(443);
-console.log("The HTTPS server is up and running");
+ var server = https.createServer(options, app).listen(443);
+ console.log("The HTTPS server is up and running");*/
 
-var io = IO(server);
+var io = IO(http);
 console.log("Socket Secure server is up and running.");
 
 // 房间用户名单
@@ -42,6 +41,14 @@ io.on('connect', function (socket) {
   socket.on('message', function(data) {
     var data = JSON.parse(data);
     switch (data.event) {
+      case "get_room_info":
+        socket.emit('message', JSON.stringify({
+            "event": "show",
+            "allUser": roomUsers,
+            "success": true
+          })
+        );
+        break;
       //当有新用户加入时
       case "join":
         console.log("User joined", data.name);
@@ -65,6 +72,12 @@ io.on('connect', function (socket) {
           roomInfo[roomID][user] = socket;
           socket.name = user;
           socket.join(roomID);
+          io.emit('message', JSON.stringify({
+              "event": "show",
+              "allUser": roomUsers,
+              "success": true
+            })
+          );
           pub.publish(roomID, JSON.stringify({
             "event": "join",
             "users": roomUsers[roomID],
@@ -116,6 +129,7 @@ io.on('connect', function (socket) {
             "candidate": data.candidate
           });
         }
+        console.log(data.connectedUser);
         break;
 
       case "leave":
@@ -162,3 +176,5 @@ sub.on("message", function(channel, message) {
 function sendTo(connection, message) {
   connection.send(message);
 }
+
+http.listen(3000);

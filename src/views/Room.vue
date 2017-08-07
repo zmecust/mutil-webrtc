@@ -28,17 +28,18 @@
                             <button class="btn-success btn" v-show="accept_video" @click="accept">您有视频邀请，接受?</button>
                         </li>
                     </ul>
-                </div>
-                <div class="col-md-9">
-                    <video id="localVideo" :src="local_video" autoplay></video>
-                    <video id="remoteVideo" :src="remote_video" autoplay></video>
                     <div class="row text-center">
                         <div class="col-md-12">
                             <input class="form-control" type="text" v-model="call_username" placeholder="username to call"/>
+                            <br>
                             <button class="btn-success btn" @click="call">Call</button>
                             <button class="btn-danger btn" @click="hangUp">Hang Up</button>
                         </div>
                     </div>
+                </div>
+                <div class="col-md-9">
+                    <video id="localVideo" :src="local_video" autoplay></video>
+                    <video id="remoteVideo" :src="remote_video" autoplay></video>
                 </div>
             </div>
         </div>
@@ -46,7 +47,7 @@
 </template>
 
 <script>
-  const socket = io.connect('http://localhost:443');
+  const socket = io.connect('http://localhost:3000');
   var stream;
   var peerConn;
   var connectedUser;
