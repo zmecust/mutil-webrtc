@@ -2,6 +2,8 @@
 
 > A Vue.js project about video communication
 
+> https://laravue.org
+
 ## Build Setup
 
 ``` bash
