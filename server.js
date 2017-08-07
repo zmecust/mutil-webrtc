@@ -1,4 +1,6 @@
-var http = require('http').Server();
+var express = require('express');
+var app = express();
+var https = require('https');
 var fs = require('fs');
 var IO = require('socket.io');
 
@@ -7,17 +9,26 @@ var redisClient = redis.createClient;
 var pub = redisClient(6379, '127.0.0.1');
 var sub = redisClient(6379, '127.0.0.1');
 
-/*//配置ssl证书
+//配置ssl证书
 var options = {
   key: fs.readFileSync('./ssl/key.pem'),
   cert: fs.readFileSync('./ssl/cert.pem'),
   passphrase: '123456789'
 };
 
-var server = https.createServer(options).listen(443);
-console.log("The HTTPS server is up and running");*/
+app.use(express.static('dist'));
 
-var io = IO(http);
+app.use(function(req, res, next) {
+  if(req.headers['x-forwarded-proto'] === 'http') {
+    return res.redirect(['https://', req.get('Host'), req.url].join(''));
+  }
+  next();
+});
+
+var server = https.createServer(options, app).listen(443);
+console.log("The HTTPS server is up and running");
+
+var io = IO(server);
 console.log("Socket Secure server is up and running.");
 
 // 房间用户名单
@@ -151,5 +162,3 @@ sub.on("message", function(channel, message) {
 function sendTo(connection, message) {
   connection.send(message);
 }
-
-http.listen(3000);
