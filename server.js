@@ -146,13 +146,13 @@ io.on('connect', function (socket) {
     }
   });
 
-  socket.on("close", function() {
+  socket.on("disconnect", function() {
     if(socket.name) {
-      delete roomInfo[roomID][data.connectedUser];
-      delete roomUsers[roomID][data.connectedUser];
+      roomInfo[roomID].splice(roomInfo[roomID].indexOf(socket.name));
+      roomUsers[roomID].splice(roomUsers[roomID].indexOf(socket.name));
       if(socket.otherName) {
         console.log("Disconnecting from ", socket.otherName);
-        var conn = roomUsers[roomID][socket.otherName];
+        var conn = roomInfo[roomID][socket.otherName];
         socket.otherName = null;
         if(conn != null) {
           sendTo(conn, {

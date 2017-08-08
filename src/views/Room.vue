@@ -52,6 +52,9 @@
   var peerConn;
   var connectedUser;
   var acceptData;
+  var configuration = {
+        "iceServers": [{ "url": "stun:stun2.1.google.com:19302" }]
+      };
 
   export default {
     data() {
@@ -116,37 +119,41 @@
         } else {
           this.show = false;
           this.users = data.users;
-
-          /*----------Starting a peer connection----------*/
-          //getting local video stream
-          navigator.webkitGetUserMedia({ video: true, audio: true }, function (myStream) {
-            stream = myStream;
-            //displaying local video stream on the page
-            self.local_video = window.URL.createObjectURL(stream);
-            //using Google public stun server
-            var configuration = {
-              "iceServers": [{ "url": "stun:stun2.1.google.com:19302" }]
-            };
-            peerConn = new webkitRTCPeerConnection(configuration);
-            // setup stream listening
-            peerConn.addStream(stream);
-            //when a remote user adds stream to the peer connection, we display it
-            peerConn.onaddstream = function (e) {
-             self.remote_video = window.URL.createObjectURL(e.stream);
-            };
-            // Setup ice handling
-            peerConn.onicecandidate = function (event) {
-              if (event.candidate) {
-                self.send({
-                  event: "candidate",
-                  candidate: event.candidate
-                });
-              }
-            };
-          }, function (error) {
-            console.log(error);
-          });
+          this.createPeerConnect();
+          this.prepare();
         }
+      },
+      createPeerConnect() {
+        let self = this;
+        //using Google public stun server
+        peerConn = new webkitRTCPeerConnection(configuration);
+        //when a remote user adds stream to the peer connection, we display it
+        peerConn.onaddstream = function (e) {
+          self.remote_video = window.URL.createObjectURL(e.stream);
+        };
+        // Setup ice handling
+        peerConn.onicecandidate = function (event) {
+          if (event.candidate) {
+            self.send({
+              event: "candidate",
+              candidate: event.candidate
+            });
+          }
+        };
+      },
+      prepare() {
+        let self = this;
+        /*----------Starting a peer connection----------*/
+        //getting local video stream
+        navigator.webkitGetUserMedia({ video: true, audio: true }, function (myStream) {
+          stream = myStream;
+          //displaying local video stream on the page
+          self.local_video = window.URL.createObjectURL(stream);
+          // setup stream listening
+          peerConn.addStream(stream);
+        }, function (error) {
+          console.log(error);
+        });
       },
       call() {
         var self = this;
@@ -201,11 +208,15 @@
       },
       handleLeave() {
         connectedUser = null;
-        this.remote_video = null;
+        this.remote_video = "";
         peerConn.close();
         peerConn.onicecandidate = null;
         peerConn.onaddstream = null;
-      }
+        if (peerConn.signalingState == 'closed') {
+          this.createPeerConnect();
+          this.prepare();
+        }
+      },
     }
   }
 </script>
