@@ -24,18 +24,7 @@
                                 <p>{{user}}</p>
                             </div>
                         </li>
-                        <li class="list-group-item">
-                            <button class="btn-success btn" v-show="accept_video" @click="accept">您有视频邀请，接受?</button>
-                        </li>
                     </ul>
-                    <div class="row text-center">
-                        <div class="col-md-12">
-                            <input class="form-control" type="text" v-model="call_username" placeholder="username to call"/>
-                            <br>
-                            <button class="btn-success btn" @click="call">Call</button>
-                            <button class="btn-danger btn" @click="hangUp">Hang Up</button>
-                        </div>
-                    </div>
                 </div>
                 <div class="col-md-9">
                     <video id="localVideo" :src="local_video" autoplay></video>
@@ -51,10 +40,11 @@
   var stream;
   var peerConn;
   var connectedUser;
-  var acceptData;
   var configuration = {
-        "iceServers": [{ "url": "stun:stun2.1.google.com:19302" }]
-      };
+    "iceServers": [
+      { "url": "turn:115.28.170.217:3478", "credential": "zmecust", "username": "zmecust" }
+    ]
+  };
 
   export default {
     data() {
@@ -63,21 +53,20 @@
         show: true,
         roomID: this.$route.params.room,
         users: '',
-        call_username: '',
         local_video: '',
         remote_video: '',
-        accept_video: false
+        answer: false
       }
     },
     mounted() {
       socket.on('message', function (data) {
+        console.log(data);
         switch (data.event) {
           case "join":
             this.handleLogin(data);
             break;
           case "offer":
-            acceptData = data;
-            this.handleOffer();
+            this.handleOffer(data);
             break;
           case "candidate":
             this.handleCandidate(data);
@@ -86,9 +75,11 @@
             this.handleMsg(data);
             break;
           case "answer":
+            this.answer = true;
             this.handleAnswer(data);
             break;
           case "leave":
+            this.answer = true;
             this.handleLeave();
             break;
           default:
@@ -113,26 +104,34 @@
         socket.send(JSON.stringify(message));
       },
       handleLogin(data) {
-        let self = this;
         if (data.success === false) {
           alert("Ooops...try a different username");
         } else {
           this.show = false;
           this.users = data.users;
-          this.createPeerConnect();
-          this.prepare();
+          this.initCreate();
         }
       },
-      createPeerConnect() {
+      initCreate() {
         let self = this;
-        //using Google public stun server
-        peerConn = new webkitRTCPeerConnection(configuration);
-        //when a remote user adds stream to the peer connection, we display it
+        peerConn = new RTCPeerConnection(configuration);
+        navigator.getUserMedia({ video: true, audio: true }, gotStream, logError);
+        function gotStream(stream) {
+          //displaying local video stream on the page
+          self.local_video = window.URL.createObjectURL(stream);
+          peerConn.addStream(stream);
+          if ((self.users.length == 2) && (self.users[1] == self.user_name)) {
+            self.call();
+          }
+        }
+        function logError(error) {
+          console.log(error);
+        }
         peerConn.onaddstream = function (e) {
           self.remote_video = window.URL.createObjectURL(e.stream);
         };
-        // Setup ice handling
         peerConn.onicecandidate = function (event) {
+          console.log(event.target.iceGatheringState);
           if (event.candidate) {
             self.send({
               event: "candidate",
@@ -141,43 +140,24 @@
           }
         };
       },
-      prepare() {
-        let self = this;
-        /*----------Starting a peer connection----------*/
-        //getting local video stream
-        navigator.webkitGetUserMedia({ video: true, audio: true }, function (myStream) {
-          stream = myStream;
-          //displaying local video stream on the page
-          self.local_video = window.URL.createObjectURL(stream);
-          // setup stream listening
-          peerConn.addStream(stream);
-        }, function (error) {
-          console.log(error);
-        });
-      },
       call() {
         var self = this;
-        if (this.call_username.length > 0) {
-          connectedUser = this.call_username;
-          // create an offer
-          peerConn.createOffer(function (offer) {
-            self.send({
-              event: "offer",
-              offer: offer
-            });
-            peerConn.setLocalDescription(offer);
-          }, function (error) {
-            alert("Error when creating an offer");
+        connectedUser = this.users[0];
+        // create an offer
+        peerConn.createOffer(function (offer) {
+          self.send({
+            event: "offer",
+            offer: offer
           });
-        }
+          peerConn.setLocalDescription(offer);
+        }, function (error) {
+          alert("Error when creating an offer");
+        });
       },
-      handleOffer() {
-        this.accept_video = true;
-      },
-      accept() {
+      handleOffer(data) {
         var self = this;
-        var data = acceptData;
         connectedUser = data.name;
+        console.log(connectedUser);
         peerConn.setRemoteDescription(new RTCSessionDescription(data.offer));
         //create an answer to an offer
         peerConn.createAnswer(function (answer) {
@@ -189,7 +169,6 @@
         }, function (error) {
           alert("Error when creating an answer");
         });
-        this.accept_video = false;
       },
       handleMsg(data) {
         console.log(data.message);
@@ -207,14 +186,14 @@
         this.handleLeave();
       },
       handleLeave() {
+        alert("通话已结束");
         connectedUser = null;
         this.remote_video = "";
         peerConn.close();
         peerConn.onicecandidate = null;
         peerConn.onaddstream = null;
         if (peerConn.signalingState == 'closed') {
-          this.createPeerConnect();
-          this.prepare();
+          this.initCreate();
         }
       },
     }
