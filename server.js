@@ -89,13 +89,9 @@ io.on('connect', function (socket) {
         break;
 
       case "offer":
-        //for example: UserA wants to call UserB
         console.log(user, " Sending offer to: ", data.connectedUser);
-        //if UserB exists then send him offer details
         var conn = roomSockets[roomID][data.connectedUser];
         if(conn != null) {
-          //setting that UserA connected with UserB
-          socket.otherName = data.connectedUser;
           sendTo(conn, {
             "event": "offer",
             "offer": data.offer,
@@ -114,21 +110,22 @@ io.on('connect', function (socket) {
         //for ex. UserB answers UserA
         var conn = roomSockets[roomID][data.connectedUser];
         if(conn != null) {
-          socket.otherName = data.name;
           sendTo(conn, {
             "event": "answer",
-            "answer": data.answer
+            "answer": data.answer,
+            "name": user
           });
         }
         break;
 
       case "candidate":
-        console.log("Sending candidate to:", data.connectedUser);
-        var conn = roomSockets[roomID][data.connectedUser];
+        console.log(data.name, " Sending candidate to: ", user);
+        var conn = roomSockets[roomID][data.name];
         if(conn != null) {
           sendTo(conn, {
             "event": "candidate",
-            "candidate": data.candidate
+            "candidate": data.candidate,
+            "name": user
           });
         }
         break;
