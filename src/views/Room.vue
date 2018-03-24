@@ -5,7 +5,7 @@
                 <div class="col-md-4 col-md-offset-4">
                     <form class="form" action="" @submit.prevent="submit()">
                         <h2>WebRTC Video Demo. Please Sign In</h2><br/>
-                        <input class="form-control" type="text" placeholder="请输入您的昵称"
+                        <input class="form-control" type="text" placeholder="请先创建您的昵称"
                                required="" autofocus="" v-model="user_name"><br/>
                         <button class="btn btn-primary btn-block" type="submit">创建昵称</button>
                     </form>
@@ -16,8 +16,8 @@
             <div class="row">
                 <div class="col-md-3" style="height: 50%">
                     <ul class="list-group">
-                        <li class="list-group-item">昵称: {{user_name}}</li>
-                        <li class="list-group-item">房间: {{roomID}}</li>
+                        <li class="list-group-item">您的昵称: {{user_name}}</li>
+                        <li class="list-group-item">当前房间号: {{roomID}}</li>
                         <li class="list-group-item">当前在线人数: {{users.length}}</li>
                         <li class="list-group-item">在线用户:
                             <div v-for="user in users" :key="user">
@@ -27,7 +27,9 @@
                     </ul>
                 </div>
                 <div class="col-md-9">
-                    <video id="localVideo" :src="local_video" autoplay></video>
+                    <div id="localVideo">
+                        <video :src="local_video" autoplay></video>
+                    </div>
                     <div id="remoteVideo"></div>
                 </div>
             </div>
@@ -53,12 +55,11 @@ var configuration = {
 export default {
   data() {
     return {
-      user_name: "",
+      user_name: "", //当前用户名
       show: true,
-      roomID: this.$route.params.room,
-      users: "",
-      local_video: "",
-      answer: false
+      roomID: this.$route.params.room, //房间号
+      users: "", //当前房间的所有用户
+      local_video: "", //本地摄像头地址
     };
   },
   mounted() {
@@ -80,12 +81,10 @@ export default {
             this.handleMsg(data);
             break;
           case "answer":
-            this.answer = true;
             this.handleAnswer(data);
             break;
           case "leave":
-            this.answer = true;
-            this.handleLeave();
+            this.handleLeave(data);
             break;
           default:
             break;
@@ -113,9 +112,11 @@ export default {
         this.show = false;
         this.users = data.users;
         var newUser = this.users[this.users.length - 1];
+        //如果新加入的用户为自己时
         if (newUser == this.user_name) {
           this.initCreate();
         } else {
+          //新加入用户非自己时
           var pc = this.createPeerConnection(newUser);
           for (var i = 0; i < streams.length; i++) {
             var stream = streams[i];
@@ -154,21 +155,22 @@ export default {
         }
       }
     },
-    createPeerConnection(id) {
-      var pc = (peerConn[id] = new RTCPeerConnection(configuration));
+    createPeerConnection(name) {
+      var pc = (peerConn[name] = new RTCPeerConnection(configuration));
       pc.onicecandidate = event => {
         console.log(event.target.iceGatheringState);
         if (event.candidate) {
           this.send({
             event: "candidate",
             candidate: event.candidate,
-            name: id
+            name: name
           });
         }
       };
       pc.onaddstream = function(e) {
         let child = document.createElement("video");
         child.src = window.URL.createObjectURL(e.stream);
+        child.id = 'remote_video' + name;
         document.getElementById("remoteVideo").appendChild(child);
       };
       return pc;
@@ -232,27 +234,29 @@ export default {
     handleCandidate(data) {
       peerConn[data.name].addIceCandidate(new RTCIceCandidate(data.candidate));
     },
-    hangUp() {
-      this.send({
-        event: "leave"
-      });
-      this.handleLeave();
-    },
-    handleLeave() {
-      alert("通话已结束");
-      connectedUser = null;
-      //this.remote_video = "";
-      peerConn[this.user_name].close();
-      peerConn[this.user_name].onicecandidate = null;
-      peerConn[this.user_name].onaddstream = null;
-      if (peerConn[this.user_name].signalingState == "closed") {
-        this.initCreate();
-      }
+    handleLeave(data) {
+      alert("用户" + data.name + "已退出");
+      this.users = data.users;
+      //移除退出用户的视频源
+      var video = document.getElementById('remote_video' + data.name);
+      video.parentNode.removeChild(video);
+      var pc = peerConn[data.name];
+      pc.close();
+      pc.onicecandidate = null;
+      pc.onaddstream = null;
     }
   }
 };
 </script>
 
 <style>
+#localVideo, #remoteVideo {
+  display: flex;
+  align-items: flex-start;
+}
 
+#remoteVideo video {
+  width: 25%;
+  padding: 10px 10px 0 0;
+}
 </style>

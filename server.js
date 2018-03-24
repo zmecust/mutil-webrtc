@@ -39,7 +39,7 @@ var roomSockets = {};
 
 io.on('connect', function (socket) {
   var roomID = '';  //房间号
-  var user = '';   //当前登录用户名
+  var user = '';    //当前登录用户名
 
   socket.on('message', function(data) {
     var data = JSON.parse(data);
@@ -125,19 +125,7 @@ io.on('connect', function (socket) {
           sendTo(conn, {
             "event": "candidate",
             "candidate": data.candidate,
-            "name": user
-          });
-        }
-        break;
-
-      case "leave":
-        console.log("Disconnecting from", data.connectedUser);
-        var conn = roomSockets[roomID][data.connectedUser];
-        socket.otherName = null;
-        //notify the other user so he can disconnect his peer connection
-        if(conn != null) {
-          sendTo(conn, {
-            event: "leave"
+            "name": user,
           });
         }
         break;
@@ -148,16 +136,12 @@ io.on('connect', function (socket) {
     if(socket.name) {
       roomSockets[roomID].splice(roomSockets[roomID].indexOf(socket.name));
       roomUsers[roomID].splice(roomUsers[roomID].indexOf(socket.name));
-      if(socket.otherName) {
-        console.log("Disconnecting from ", socket.otherName);
-        var conn = roomSockets[roomID][socket.otherName];
-        socket.otherName = null;
-        if(conn != null) {
-          sendTo(conn, {
-            type: "leave"
-          });
-        }
-      }
+      console.log("Disconnecting from ", socket.name);
+      pub.publish(roomID, JSON.stringify({
+        "event": "leave",
+        "name": socket.name,
+        "users": roomUsers[roomID],
+      }));
     }
   });
 });
