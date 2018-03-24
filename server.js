@@ -1,6 +1,6 @@
 var express = require('express');
 var app = express();
-var http = require('http').Server();
+var http = require('http');
 var fs = require('fs');
 var IO = require('socket.io');
 
@@ -29,9 +29,17 @@ var options = {
  console.log("The HTTPS server is up and running");
 */
 
-var io = IO(http);
-http.listen(3000);
+// var io = IO(http);
+// http.listen(3000);
+// console.log("Socket Secure server is up and running.");
+
+app.use(express.static('dist'));
+var server = http.createServer(app).listen(3001);
+console.log("The HTTPS server is up and running");
+
+var io = IO(server);
 console.log("Socket Secure server is up and running.");
+
 
 // 房间用户名单
 var roomUsers = {};
@@ -62,7 +70,7 @@ io.on('connect', function (socket) {
           sub.subscribe(roomID);
         }
         //当昵称重复时
-        if(roomSockets[roomID][user]) {
+        if(roomUsers[roomID].indexOf(user) !== -1) {
           pub.publish(roomID, JSON.stringify({
             "event": "join",
             "message": "该用户名已存在",
@@ -134,8 +142,9 @@ io.on('connect', function (socket) {
 
   socket.on("disconnect", function() {
     if(socket.name) {
-      roomSockets[roomID].splice(roomSockets[roomID].indexOf(socket.name));
+      roomSockets[roomID].splice(roomSockets[roomID].indexOf(socket));
       roomUsers[roomID].splice(roomUsers[roomID].indexOf(socket.name));
+      console.log(roomSockets[roomID]);
       console.log("Disconnecting from ", socket.name);
       pub.publish(roomID, JSON.stringify({
         "event": "leave",
