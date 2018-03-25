@@ -54,6 +54,7 @@
     mounted() {
       socket.on('message', function (data) {
         var data = JSON.parse(data);
+        console.log(data);
         switch (data.event) {
           case "show":
             this.rooms = data.allUser;

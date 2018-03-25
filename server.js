@@ -144,12 +144,20 @@ io.on('connect', function (socket) {
     if(socket.name) {
       roomSockets[roomID].splice(roomSockets[roomID].indexOf(socket));
       roomUsers[roomID].splice(roomUsers[roomID].indexOf(socket.name));
-      console.log(roomSockets[roomID]);
       console.log("Disconnecting from ", socket.name);
       pub.publish(roomID, JSON.stringify({
         "event": "leave",
         "name": socket.name,
         "users": roomUsers[roomID],
+      }));
+      if (roomUsers[roomID].length == 0) {
+        delete roomUsers[roomID];
+        delete roomSockets[roomID];
+      }
+      io.emit('message', JSON.stringify({
+        "event": "show",
+        "allUser": roomUsers,
+        "success": true
       }));
     }
   });
