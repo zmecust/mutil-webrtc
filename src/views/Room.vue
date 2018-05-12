@@ -39,7 +39,7 @@
 
 <script>
 const socket = io.connect("http://127.0.0.1:3001");
-var streams = [];
+var stream;
 var peerConn = [];
 var connectedUser;
 var configuration = {
@@ -59,7 +59,7 @@ export default {
       show: true,
       roomID: this.$route.params.room, //房间号
       users: "", //当前房间的所有用户
-      local_video: "", //本地摄像头地址
+      local_video: "" //本地摄像头地址
     };
   },
   mounted() {
@@ -118,20 +118,18 @@ export default {
         } else {
           //新加入用户非自己时
           var pc = this.createPeerConnection(newUser);
-          for (var i = 0; i < streams.length; i++) {
-            var stream = streams[i];
-            pc.addStream(stream);
-          }
+          pc.addStream(stream);
         }
       }
     },
     initCreate() {
       var self = this;
       navigator.getUserMedia({ video: true, audio: true }, gotStream, logError);
-      function gotStream(stream) {
+      function gotStream(e) {
         //displaying local video stream on the page
-        streams.push(stream);
-        self.local_video = window.URL.createObjectURL(stream);
+        stream = e;
+        console.log(stream);
+        self.local_video = window.URL.createObjectURL(e);
         if (
           self.users.length != 1 &&
           self.users[self.users.length - 1] == self.user_name
@@ -148,6 +146,7 @@ export default {
       this.addStreams();
       this.sendOffers();
     },
+    //创建非自己的peerConnections，如C连接进去，创建A和B
     createPeerConnections() {
       for (var i = 0; i < this.users.length; i++) {
         if (this.users[i] !== this.user_name) {
@@ -158,35 +157,34 @@ export default {
     createPeerConnection(name) {
       var pc = (peerConn[name] = new RTCPeerConnection(configuration));
       pc.onicecandidate = event => {
-        console.log(event.target.iceGatheringState);
-        if (event.candidate) {
-          this.send({
-            event: "candidate",
-            candidate: event.candidate,
-            name: name
-          });
-        }
+        setTimeout(() => {
+          if (event.candidate) {
+            this.send({
+              event: "candidate",
+              candidate: event.candidate,
+              name: name
+            });
+          }
+        });
       };
       pc.onaddstream = function(e) {
         let child = document.createElement("video");
         child.src = window.URL.createObjectURL(e.stream);
-        child.id = 'remote_video' + name;
+        child.id = "remote_video" + name;
         document.getElementById("remoteVideo").appendChild(child);
       };
       return pc;
     },
     addStreams() {
-      for (var i = 0; i < streams.length; i++) {
-        var stream = streams[i];
-        for (var connection in peerConn) {
-          peerConn[connection].addStream(stream);
-        }
+      for (let connection in peerConn) {
+        peerConn[connection].addStream(stream);
       }
     },
     sendOffers() {
       for (var i = 0, len = this.users.length; i < len; i++) {
-        var name = this.users[i];
-        this.sendOffer(name);
+        if (this.users[i] !== this.user_name) {
+          this.sendOffer(this.users[i]);
+        }
       }
     },
     sendOffer(name) {
@@ -238,7 +236,7 @@ export default {
       alert("用户" + data.name + "已退出");
       this.users = data.users;
       //移除退出用户的视频源
-      var video = document.getElementById('remote_video' + data.name);
+      var video = document.getElementById("remote_video" + data.name);
       video.parentNode.removeChild(video);
       var pc = peerConn[data.name];
       pc.close();
@@ -250,7 +248,8 @@ export default {
 </script>
 
 <style>
-#localVideo, #remoteVideo {
+#localVideo,
+#remoteVideo {
   display: flex;
   align-items: flex-start;
 }
