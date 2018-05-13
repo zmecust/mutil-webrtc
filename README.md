@@ -4,7 +4,7 @@
 
 ## 演示地址
 
-- [https://mutilwebrtc.laravue.org](https://laravue.org/#/articles/27)
+- [https://mutilwebrtc.laravue.org](https://mutilwebrtc.laravue.org)
 
 ## 项目概述
 
