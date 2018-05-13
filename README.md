@@ -4,11 +4,12 @@
 
 ## 演示地址
 
-- https://mutilwebrtc.laravue.org
+- [https://mutilwebrtc.laravue.org](https://laravue.org/#/articles/27)
 
 ## 项目概述
 
 - 实现基于房间的多人（大于2人）webrtc 视频通话，在每两个对等端之间都建立一个连接，组成“全网状拓扑结构”
+- 配套博文：[https://laravue.org/#/articles/27](https://laravue.org/#/articles/27)
 
 ## 部署要求
 
@@ -80,6 +81,4 @@ stdout_logfile=/var/log/supervisor/MutilWebRTC.log
 ## 说明
 
 - 关键是两个文件：server.js 为消息分发的信令服务;
-- 如有任何疑问或者 bug，欢迎联系 `root@laravue.org`（最近邮箱有问题），或 247281377@qq.com 
-
-For detailed explanation on how things work, checkout the [guide](http://vuejs-templates.github.io/webpack/) and [docs for vue-loader](http://vuejs.github.io/vue-loader).
+- 如有任何疑问或者 bug，欢迎联系 `root@laravue.org` 或 `247281377@qq.com `
