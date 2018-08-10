@@ -38,52 +38,52 @@
 </template>
 
 <script>
-const socket = io.connect("http://127.0.0.1:3001");
+const socket = io.connect('http://127.0.0.1:3001');
 var stream;
 var peerConn = [];
 var connectedUser;
 var configuration = {
   iceServers: [
     {
-      url: "turn:115.28.170.217:3478",
-      credential: "zmecust",
-      username: "zmecust"
-    }
-  ]
+      url: 'turn:115.28.170.217:3478',
+      credential: 'zmecust',
+      username: 'zmecust',
+    },
+  ],
 };
 
 export default {
   data() {
     return {
-      user_name: "", //当前用户名
+      user_name: '', //当前用户名
       show: true,
       roomID: this.$route.params.room, //房间号
-      users: "", //当前房间的所有用户
-      local_video: "" //本地摄像头地址
+      users: '', //当前房间的所有用户
+      local_video: '', //本地摄像头地址
     };
   },
   mounted() {
     socket.on(
-      "message",
+      'message',
       function(data) {
         console.log(data);
         switch (data.event) {
-          case "join":
+          case 'join':
             this.handleLogin(data);
             break;
-          case "offer":
+          case 'offer':
             this.handleOffer(data);
             break;
-          case "candidate":
+          case 'candidate':
             this.handleCandidate(data);
             break;
-          case "msg":
+          case 'msg':
             this.handleMsg(data);
             break;
-          case "answer":
+          case 'answer':
             this.handleAnswer(data);
             break;
-          case "leave":
+          case 'leave':
             this.handleLeave(data);
             break;
           default:
@@ -94,11 +94,11 @@ export default {
   },
   methods: {
     submit() {
-      if (this.user_name != "") {
+      if (this.user_name != '') {
         this.send({
-          event: "join",
+          event: 'join',
           name: this.user_name,
-          room: this.roomID
+          room: this.roomID,
         });
       }
     },
@@ -107,7 +107,7 @@ export default {
     },
     handleLogin(data) {
       if (data.success === false) {
-        alert("Ooops...try a different username");
+        alert('Ooops...try a different username');
       } else {
         this.show = false;
         this.users = data.users;
@@ -128,12 +128,8 @@ export default {
       function gotStream(e) {
         //displaying local video stream on the page
         stream = e;
-        console.log(stream);
         self.local_video = window.URL.createObjectURL(e);
-        if (
-          self.users.length != 1 &&
-          self.users[self.users.length - 1] == self.user_name
-        ) {
+        if (self.users.length != 1 && self.users[self.users.length - 1] == self.user_name) {
           self.call();
         }
       }
@@ -160,18 +156,18 @@ export default {
         setTimeout(() => {
           if (event.candidate) {
             this.send({
-              event: "candidate",
+              event: 'candidate',
               candidate: event.candidate,
-              name: name
+              name: name,
             });
           }
         });
       };
       pc.onaddstream = function(e) {
-        let child = document.createElement("video");
+        let child = document.createElement('video');
         child.src = window.URL.createObjectURL(e.stream);
-        child.id = "remote_video" + name;
-        document.getElementById("remoteVideo").appendChild(child);
+        child.id = 'remote_video' + name;
+        document.getElementById('remoteVideo').appendChild(child);
       };
       return pc;
     },
@@ -192,14 +188,14 @@ export default {
       pc.createOffer(
         offer => {
           this.send({
-            event: "offer",
+            event: 'offer',
             offer: offer,
-            connectedUser: name
+            connectedUser: name,
           });
           pc.setLocalDescription(offer);
         },
         error => {
-          alert("Error when creating an offer");
+          alert('Error when creating an offer');
         }
       );
     },
@@ -211,13 +207,13 @@ export default {
         answer => {
           pc.setLocalDescription(answer);
           this.send({
-            event: "answer",
+            event: 'answer',
             answer: answer,
-            connectedUser: data.name
+            connectedUser: data.name,
           });
         },
         error => {
-          alert("Error when creating an answer");
+          alert('Error when creating an answer');
         }
       );
     },
@@ -225,25 +221,23 @@ export default {
       console.log(data.message);
     },
     handleAnswer(data) {
-      peerConn[data.name].setRemoteDescription(
-        new RTCSessionDescription(data.answer)
-      );
+      peerConn[data.name].setRemoteDescription(new RTCSessionDescription(data.answer));
     },
     handleCandidate(data) {
       peerConn[data.name].addIceCandidate(new RTCIceCandidate(data.candidate));
     },
     handleLeave(data) {
-      alert("用户" + data.name + "已退出");
+      alert('用户' + data.name + '已退出');
       this.users = data.users;
       //移除退出用户的视频源
-      var video = document.getElementById("remote_video" + data.name);
+      var video = document.getElementById('remote_video' + data.name);
       video.parentNode.removeChild(video);
       var pc = peerConn[data.name];
       pc.close();
       pc.onicecandidate = null;
       pc.onaddstream = null;
-    }
-  }
+    },
+  },
 };
 </script>
 

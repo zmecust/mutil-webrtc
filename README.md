@@ -55,7 +55,7 @@ server {
 }
 ```
 
-## Supervisor 守护进程
+## Supervisor 守护进程 (或者pm2)
 
 node 服务由 Supervisor 启动并维护，设置参数如下：
 

@@ -9,166 +9,157 @@ var redisClient = redis.createClient;
 var pub = redisClient(6379, '127.0.0.1');
 var sub = redisClient(6379, '127.0.0.1');
 
-/*
-var options = {
- key: fs.readFileSync('/etc/letsencrypt/live/laravue.org/privkey.pem'),
- cert: fs.readFileSync('/etc/letsencrypt/live/laravue.org/cert.pem'),
- passphrase: '123456789'
- };
-
- app.use(express.static('dist'));
-
- app.use(function(req, res, next) {
- if(req.headers['x-forwarded-proto']==='http') {
- return res.redirect(['https://', req.get('Host'), req.url].join(''));
- }
- next();
- });
-
- var server = https.createServer(options, app).listen(443);
- console.log("The HTTPS server is up and running");
-*/
-
-// var io = IO(http);
-// http.listen(3000);
-// console.log("Socket Secure server is up and running.");
-
 app.use(express.static('dist'));
 var server = http.createServer(app).listen(3001);
-console.log("The HTTPS server is up and running");
+console.log('The HTTPS server is up and running');
 
 var io = IO(server);
-console.log("Socket Secure server is up and running.");
-
+console.log('Socket Secure server is up and running.');
 
 // 房间用户名单
 var roomUsers = {};
 var roomSockets = {};
 
-io.on('connect', function (socket) {
-  var roomID = '';  //房间号
-  var user = '';    //当前登录用户名
+io.on('connect', function(socket) {
+  var roomID = ''; //房间号
+  var user = ''; //当前登录用户名
 
   socket.on('message', function(data) {
     var data = JSON.parse(data);
     switch (data.event) {
-      case "get_room_info":
-        socket.emit('message', JSON.stringify({
-            "event": "show",
-            "allUser": roomUsers,
-            "success": true
+      case 'get_room_info':
+        socket.emit(
+          'message',
+          JSON.stringify({
+            event: 'show',
+            allUser: roomUsers,
+            success: true,
           })
         );
         break;
       //当有新用户加入时
-      case "join":
+      case 'join':
         user = data.name;
         roomID = data.room;
-        if (! roomUsers[roomID]) {
+        if (!roomUsers[roomID]) {
           roomUsers[roomID] = [];
           roomSockets[roomID] = [];
           sub.subscribe(roomID);
         }
         //当昵称重复时
-        if(roomUsers[roomID].indexOf(user) !== -1) {
-          pub.publish(roomID, JSON.stringify({
-            "event": "join",
-            "message": "该用户名已存在",
-            "success": false
-          }));
+        if (roomUsers[roomID].indexOf(user) !== -1) {
+          pub.publish(
+            roomID,
+            JSON.stringify({
+              event: 'join',
+              message: '该用户名已存在',
+              success: false,
+            })
+          );
         } else {
           //保存用户信息于该房间
           roomUsers[roomID].push(user);
           roomSockets[roomID][user] = socket;
           socket.name = user;
           socket.join(roomID);
-          io.emit('message', JSON.stringify({
-              "event": "show",
-              "allUser": roomUsers,
-              "success": true
+          io.emit(
+            'message',
+            JSON.stringify({
+              event: 'show',
+              allUser: roomUsers,
+              success: true,
             })
           );
-          pub.publish(roomID, JSON.stringify({
-            "event": "join",
-            "users": roomUsers[roomID],
-            "success": true
-          }));
+          pub.publish(
+            roomID,
+            JSON.stringify({
+              event: 'join',
+              users: roomUsers[roomID],
+              success: true,
+            })
+          );
         }
         break;
 
-      case "offer":
-        console.log(user, " Sending offer to: ", data.connectedUser);
+      case 'offer':
+        console.log(user, ' Sending offer to: ', data.connectedUser);
         var conn = roomSockets[roomID][data.connectedUser];
-        if(conn != null) {
+        if (conn != null) {
           sendTo(conn, {
-            "event": "offer",
-            "offer": data.offer,
-            "name": user
+            event: 'offer',
+            offer: data.offer,
+            name: user,
           });
         } else {
           sendTo(socket, {
-            "event": "msg",
-            "message": "Not found this name"
+            event: 'msg',
+            message: 'Not found this name',
           });
         }
         break;
 
-      case "answer":
-        console.log(user, " Sending answer to: ", data.connectedUser);
+      case 'answer':
+        console.log(user, ' Sending answer to: ', data.connectedUser);
         //for ex. UserB answers UserA
         var conn = roomSockets[roomID][data.connectedUser];
-        if(conn != null) {
+        if (conn != null) {
           sendTo(conn, {
-            "event": "answer",
-            "answer": data.answer,
-            "name": user
+            event: 'answer',
+            answer: data.answer,
+            name: user,
           });
         }
         break;
 
-      case "candidate":
-        console.log(data.name, " Sending candidate to: ", user);
+      case 'candidate':
+        console.log(data.name, ' Sending candidate to: ', user);
         var conn = roomSockets[roomID][data.name];
-        if(conn != null) {
+        if (conn != null) {
           sendTo(conn, {
-            "event": "candidate",
-            "candidate": data.candidate,
-            "name": user,
+            event: 'candidate',
+            candidate: data.candidate,
+            name: user,
           });
         }
         break;
     }
   });
 
-  socket.on("disconnect", function() {
-    if(socket.name) {
+  socket.on('disconnect', function() {
+    if (socket.name) {
       roomSockets[roomID].splice(roomSockets[roomID].indexOf(socket));
       roomUsers[roomID].splice(roomUsers[roomID].indexOf(socket.name));
-      console.log("Disconnecting from ", socket.name);
-      pub.publish(roomID, JSON.stringify({
-        "event": "leave",
-        "name": socket.name,
-        "users": roomUsers[roomID],
-      }));
+      console.log('Disconnecting from ', socket.name);
+      pub.publish(
+        roomID,
+        JSON.stringify({
+          event: 'leave',
+          name: socket.name,
+          users: roomUsers[roomID],
+        })
+      );
       if (roomUsers[roomID].length == 0) {
         delete roomUsers[roomID];
         delete roomSockets[roomID];
       }
-      io.emit('message', JSON.stringify({
-        "event": "show",
-        "allUser": roomUsers,
-        "success": true
-      }));
+      io.emit(
+        'message',
+        JSON.stringify({
+          event: 'show',
+          allUser: roomUsers,
+          success: true,
+        })
+      );
     }
   });
 });
 
-sub.on("subscribe", function(channel) {
+sub.on('subscribe', function(channel) {
   console.log('subscribe: ' + channel);
 });
 
-sub.on("message", function(channel, message) {
-  console.log("message channel " + channel + ": " + message);
+sub.on('message', function(channel, message) {
+  console.log('message channel ' + channel + ': ' + message);
   io.to(channel).emit('message', JSON.parse(message));
 });
 
