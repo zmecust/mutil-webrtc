@@ -39,7 +39,7 @@
 
 <script>
 const socket = io.connect('http://127.0.0.1:3001');
-var stream;
+var localStream;
 var peerConn = [];
 var connectedUser;
 var configuration = {
@@ -118,7 +118,7 @@ export default {
         } else {
           //新加入用户非自己时
           var pc = this.createPeerConnection(newUser);
-          pc.addStream(stream);
+          pc.addStream(localStream);
         }
       }
     },
@@ -127,9 +127,11 @@ export default {
       navigator.getUserMedia({ video: true, audio: true }, gotStream, logError);
       function gotStream(e) {
         //displaying local video stream on the page
-        stream = e;
+        localStream = e;
         self.local_video = window.URL.createObjectURL(e);
-        if (self.users.length != 1 && self.users[self.users.length - 1] == self.user_name) {
+        const vid = document.getElementById('localVideo');
+        vid.muted = true;
+        if (self.users.length !== 1 && self.users[self.users.length - 1] === self.user_name) {
           self.call();
         }
       }
@@ -173,7 +175,7 @@ export default {
     },
     addStreams() {
       for (let connection in peerConn) {
-        peerConn[connection].addStream(stream);
+        peerConn[connection].addStream(localStream);
       }
     },
     sendOffers() {
