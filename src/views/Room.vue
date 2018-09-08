@@ -27,8 +27,8 @@
                     </ul>
                 </div>
                 <div class="col-md-9">
-                    <div id="localVideo">
-                        <video :src="local_video" autoplay></video>
+                    <div id="local">
+                        <video id="localVideo" :src="local_video" autoplay></video>
                     </div>
                     <div id="remoteVideo"></div>
                 </div>
@@ -169,6 +169,7 @@ export default {
         let child = document.createElement('video');
         child.src = window.URL.createObjectURL(e.stream);
         child.id = 'remote_video' + name;
+        child.autoplay = 'autoplay';
         document.getElementById('remoteVideo').appendChild(child);
       };
       return pc;
@@ -244,7 +245,7 @@ export default {
 </script>
 
 <style>
-#localVideo,
+#local,
 #remoteVideo {
   display: flex;
   align-items: flex-start;

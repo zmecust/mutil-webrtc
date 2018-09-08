@@ -127,29 +127,33 @@ io.on('connect', function(socket) {
 
   socket.on('disconnect', function() {
     if (socket.name) {
-      roomSockets[roomID].splice(roomSockets[roomID].indexOf(socket));
-      roomUsers[roomID].splice(roomUsers[roomID].indexOf(socket.name));
-      console.log('Disconnecting from ', socket.name);
-      pub.publish(
-        roomID,
-        JSON.stringify({
-          event: 'leave',
-          name: socket.name,
-          users: roomUsers[roomID],
-        })
-      );
-      if (roomUsers[roomID].length == 0) {
-        delete roomUsers[roomID];
-        delete roomSockets[roomID];
+      try {
+        roomSockets[roomID].splice(roomSockets[roomID].indexOf(socket));
+        roomUsers[roomID].splice(roomUsers[roomID].indexOf(socket.name));
+        console.log('Disconnecting from ', socket.name);
+        pub.publish(
+          roomID,
+          JSON.stringify({
+            event: 'leave',
+            name: socket.name,
+            users: roomUsers[roomID],
+          })
+        );
+        if (roomUsers[roomID].length == 0) {
+          delete roomUsers[roomID];
+          delete roomSockets[roomID];
+        }
+        io.emit(
+          'message',
+          JSON.stringify({
+            event: 'show',
+            allUser: roomUsers,
+            success: true,
+          })
+        );
+      } catch (err) {
+        console.log(err);
       }
-      io.emit(
-        'message',
-        JSON.stringify({
-          event: 'show',
-          allUser: roomUsers,
-          success: true,
-        })
-      );
     }
   });
 });
