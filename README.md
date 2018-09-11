@@ -20,11 +20,16 @@
 
 - git clone https://github.com/zmecust/mutil-webrtc.git
 - npm i
-- npm run dev    // 本地测试
-- npm run build  // 线上环境
+- npm run build
 - node server.js
 
-## Nginx 反向代理
+## 本地部署
+
+- 安装完之后，打开浏览器运行 `localhost:3001`
+
+## 线上部署
+
+- Nginx 反向代理
 
 线上环境修改 `Room.vue` 和 `Welcome.vue` 中的 `const socket = io.connect('https://yourdomain');`
 
@@ -55,7 +60,7 @@ server {
 }
 ```
 
-## Supervisor 守护进程 (或者pm2)
+- Supervisor 守护进程 (或者 pm2)
 
 node 服务由 Supervisor 启动并维护，设置参数如下：
 
@@ -80,5 +85,5 @@ stdout_logfile=/var/log/supervisor/MutilWebRTC.log
 
 ## 说明
 
-- 关键是两个文件：server.js 为消息分发的信令服务;
-- 如有任何疑问或者 bug，欢迎联系 `root@laravue.org` 或 `247281377@qq.com `
+- 线上环境部署需要配置 stun 服务，否则不同域之间不能直接通信；
+- 如有任何疑问或者 bug，欢迎联系 `root@laravue.org` 或 `247281377@qq.com`
