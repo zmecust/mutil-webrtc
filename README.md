@@ -1,6 +1,6 @@
 # mutil-webrtc
 
-> mutil-webrtc communication
+> 基于 WebRTC 的多人视频通话，解决视频卡顿和回音
 
 ## 演示地址
 
@@ -29,7 +29,7 @@
 
 ## 线上部署
 
-- Nginx 反向代理
+- **Nginx 反向代理**
 
 线上环境修改 `Room.vue` 和 `Welcome.vue` 中的 `const socket = io.connect('https://yourdomain');`
 
@@ -60,7 +60,7 @@ server {
 }
 ```
 
-- Supervisor 守护进程 (或者 pm2)
+- **Supervisor 守护进程 (或者 pm2)**
 
 node 服务由 Supervisor 启动并维护，设置参数如下：
 
