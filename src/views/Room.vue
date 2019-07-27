@@ -1,56 +1,61 @@
 <template>
-    <div>
-        <div class="container text-center" v-show="show">
-            <div class="row">
-                <div class="col-md-4 col-md-offset-4">
-                    <form class="form" action="" @submit.prevent="submit()">
-                        <h2>WebRTC Video Demo. Please Sign In</h2><br/>
-                        <input class="form-control" type="text" placeholder="请先创建您的昵称"
-                               required="" autofocus="" v-model="user_name"><br/>
-                        <button class="btn btn-primary btn-block" type="submit">创建昵称</button>
-                    </form>
-                </div>
-            </div>
+  <div>
+    <div class="container text-center" v-show="show">
+      <div class="row">
+        <div class="col-md-4 col-md-offset-4">
+          <form class="form" action @submit.prevent="submit()">
+            <h2>WebRTC Video Demo. Please Sign In</h2>
+            <br>
+            <input
+              class="form-control"
+              type="text"
+              placeholder="请先创建您的昵称"
+              required
+              autofocus
+              v-model="user_name"
+            >
+            <br>
+            <button class="btn btn-primary btn-block" type="submit">创建昵称</button>
+          </form>
         </div>
-        <div class="container text-center" v-show="! show">
-            <div class="row">
-                <div class="col-md-3" style="height: 50%">
-                    <ul class="list-group">
-                        <li class="list-group-item">您的昵称: {{user_name}}</li>
-                        <li class="list-group-item">当前房间号: {{roomID}}</li>
-                        <li class="list-group-item">当前在线人数: {{users.length}}</li>
-                        <li class="list-group-item">在线用户:
-                            <div v-for="user in users" :key="user">
-                                <p>{{user}}</p>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-                <div class="col-md-9">
-                    <div id="local">
-                        <video id="localVideo" :src="local_video" autoplay></video>
-                    </div>
-                    <div id="remoteVideo"></div>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+    <div class="container text-center" v-show="! show">
+      <div class="row">
+        <div class="col-md-3" style="height: 50%">
+          <ul class="list-group">
+            <li class="list-group-item">您的昵称: {{ user_name }}</li>
+            <li class="list-group-item">当前房间号: {{ roomID }}</li>
+            <li class="list-group-item">当前在线人数: {{ users.length }}</li>
+            <li class="list-group-item">
+              在线用户:
+              <div v-for="user in users" :key="user">
+                <p>{{ user }}</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="col-md-9">
+          <div id="local">
+            <video id="localVideo" autoplay></video>
+          </div>
+          <div id="remoteVideo"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
-const socket = io.connect('http://127.0.0.1:3001');
-var localStream;
-var peerConn = [];
-var connectedUser;
-var configuration = {
-  iceServers: [
-    {
-      url: 'turn:115.28.170.217:3478',
-      credential: 'zmecust',
-      username: 'zmecust',
-    },
-  ],
+import * as config from '../../config';
+
+const socket = io.connect(config.API_ROOT);
+const configuration = {
+  iceServers: [config.DEFAULT_ICE_SERVER],
 };
+
+let localStream, connectedUser;
+const peerConn = [];
 
 export default {
   data() {
@@ -59,7 +64,6 @@ export default {
       show: true,
       roomID: this.$route.params.room, //房间号
       users: '', //当前房间的所有用户
-      local_video: '', //本地摄像头地址
     };
   },
   mounted() {
@@ -94,7 +98,7 @@ export default {
   },
   methods: {
     submit() {
-      if (this.user_name != '') {
+      if (this.user_name !== '') {
         this.send({
           event: 'join',
           name: this.user_name,
@@ -112,31 +116,62 @@ export default {
         this.show = false;
         this.users = data.users;
         var newUser = this.users[this.users.length - 1];
-        //如果新加入的用户为自己时
-        if (newUser == this.user_name) {
+        // If new user is youself
+        if (newUser === this.user_name) {
           this.initCreate();
         } else {
-          //新加入用户非自己时
+          // New user is not youself
           var pc = this.createPeerConnection(newUser);
           pc.addStream(localStream);
         }
       }
     },
+    addVideoURL(elementId, stream) {
+      var video = document.getElementById(elementId);
+      // Old brower may have no srcObject
+      if ('srcObject' in video) {
+        video.srcObject = stream;
+      } else {
+        // 防止在新的浏览器里使用它，应为它已经不再支持了
+        video.src = window.URL.createObjectURL(stream);
+      }
+    },
     initCreate() {
       var self = this;
-      navigator.getUserMedia({ video: true, audio: true }, gotStream, logError);
-      function gotStream(e) {
-        //displaying local video stream on the page
-        localStream = e;
-        self.local_video = window.URL.createObjectURL(e);
-        const vid = document.getElementById('localVideo');
-        vid.muted = true;
-        if (self.users.length !== 1 && self.users[self.users.length - 1] === self.user_name) {
-          self.call();
+
+      // Old WebRTC API
+      if (navigator.getUserMedia) {
+        navigator.getUserMedia({ video: true, audio: true }, gotStream, logError);
+        function gotStream(e) {
+          const vid = document.getElementById('localVideo');
+          // Displaying local video stream on the page
+          vid.src = window.URL.createObjectURL(e);
+          // Mute local audio
+          vid.muted = true;
+          localStream = e;
+          if (self.users.length !== 1 && self.users[self.users.length - 1] === self.user_name) {
+            self.call();
+          }
         }
-      }
-      function logError(error) {
-        console.log(error);
+        function logError(error) {
+          console.log(error);
+        }
+      } else {
+        // New webrtc API
+        navigator.mediaDevices
+          .getUserMedia({ audio: true, video: true })
+          .then(function(stream) {
+            var video = document.getElementById('localVideo');
+            self.addVideoURL('localVideo', stream);
+            video.muted = true;
+            localStream = stream;
+            if (self.users.length !== 1 && self.users[self.users.length - 1] === self.user_name) {
+              self.call();
+            }
+          })
+          .catch(function(err) {
+            console.log(err.name + ': ' + err.message);
+          });
       }
     },
     call() {
@@ -144,7 +179,7 @@ export default {
       this.addStreams();
       this.sendOffers();
     },
-    //创建非自己的peerConnections，如C连接进去，创建A和B
+    // Create all peerConnections exclude self one. i.e. If connected usr is C, then create peerConnections for A and B.
     createPeerConnections() {
       for (var i = 0; i < this.users.length; i++) {
         if (this.users[i] !== this.user_name) {
@@ -166,9 +201,9 @@ export default {
         });
       };
       pc.onaddstream = function(e) {
-        let child = document.createElement('video');
-        child.src = window.URL.createObjectURL(e.stream);
-        child.id = 'remote_video' + name;
+        self.addVideoURL('video', e.stream);
+        const child = document.createElement('video');
+        child.id = `remote_video_${name}`;
         child.autoplay = 'autoplay';
         document.getElementById('remoteVideo').appendChild(child);
       };
@@ -205,7 +240,7 @@ export default {
     handleOffer(data) {
       var pc = peerConn[data.name];
       pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-      //create an answer to an offer
+      // Create an answer to an offer
       pc.createAnswer(
         answer => {
           pc.setLocalDescription(answer);
@@ -232,8 +267,8 @@ export default {
     handleLeave(data) {
       alert('用户' + data.name + '已退出');
       this.users = data.users;
-      //移除退出用户的视频源
-      var video = document.getElementById('remote_video' + data.name);
+      // Remove video src for the exist user
+      var video = document.getElementById(`remote_video_${data.name}`);
       video.parentNode.removeChild(video);
       var pc = peerConn[data.name];
       pc.close();

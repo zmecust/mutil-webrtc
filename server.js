@@ -21,8 +21,8 @@ var roomUsers = {};
 var roomSockets = {};
 
 io.on('connect', function(socket) {
-  var roomID = ''; //房间号
-  var user = ''; //当前登录用户名
+  var roomID = ''; // 房间号
+  var user = ''; // 当前登录用户名
 
   socket.on('message', function(data) {
     var data = JSON.parse(data);
@@ -37,7 +37,7 @@ io.on('connect', function(socket) {
           })
         );
         break;
-      //当有新用户加入时
+      // 当有新用户加入时
       case 'join':
         user = data.name;
         roomID = data.room;
@@ -46,7 +46,7 @@ io.on('connect', function(socket) {
           roomSockets[roomID] = [];
           sub.subscribe(roomID);
         }
-        //当昵称重复时
+        // 当昵称重复时
         if (roomUsers[roomID].indexOf(user) !== -1) {
           pub.publish(
             roomID,
@@ -57,7 +57,7 @@ io.on('connect', function(socket) {
             })
           );
         } else {
-          //保存用户信息于该房间
+          // 保存用户信息于该房间
           roomUsers[roomID].push(user);
           roomSockets[roomID][user] = socket;
           socket.name = user;
@@ -100,7 +100,7 @@ io.on('connect', function(socket) {
 
       case 'answer':
         console.log(user, ' Sending answer to: ', data.connectedUser);
-        //for ex. UserB answers UserA
+        // i.e. UserB answers UserA
         var conn = roomSockets[roomID][data.connectedUser];
         if (conn != null) {
           sendTo(conn, {
