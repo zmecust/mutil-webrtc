@@ -3,6 +3,7 @@ var app = express();
 var http = require('http');
 var fs = require('fs');
 var IO = require('socket.io');
+var { API_PORT } = require('./configure');
 
 var redis = require('redis');
 var redisClient = redis.createClient;
@@ -10,7 +11,7 @@ var pub = redisClient(6379, '127.0.0.1');
 var sub = redisClient(6379, '127.0.0.1');
 
 app.use(express.static('dist'));
-var server = http.createServer(app).listen(3001);
+var server = http.createServer(app).listen(API_PORT);
 console.log('The HTTPS server is up and running');
 
 var io = IO(server);

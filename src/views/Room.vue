@@ -5,7 +5,7 @@
         <div class="col-md-4 col-md-offset-4">
           <form class="form" action @submit.prevent="submit()">
             <h2>WebRTC Video Demo. Please Sign In</h2>
-            <br>
+            <br />
             <input
               class="form-control"
               type="text"
@@ -13,8 +13,8 @@
               required
               autofocus
               v-model="user_name"
-            >
-            <br>
+            />
+            <br />
             <button class="btn btn-primary btn-block" type="submit">创建昵称</button>
           </form>
         </div>
@@ -47,7 +47,7 @@
 </template>
 
 <script>
-import * as config from '../../config';
+import * as config from '../../configure';
 
 const socket = io.connect(config.API_ROOT);
 const configuration = {
@@ -138,41 +138,21 @@ export default {
     },
     initCreate() {
       var self = this;
-
-      // Old WebRTC API
-      if (navigator.getUserMedia) {
-        navigator.getUserMedia({ video: true, audio: true }, gotStream, logError);
-        function gotStream(e) {
-          const vid = document.getElementById('localVideo');
-          // Displaying local video stream on the page
-          vid.src = window.URL.createObjectURL(e);
-          // Mute local audio
-          vid.muted = true;
-          localStream = e;
+      // New webrtc API
+      navigator.mediaDevices
+        .getUserMedia({ audio: true, video: true })
+        .then(function(stream) {
+          var video = document.getElementById('localVideo');
+          self.addVideoURL('localVideo', stream);
+          video.muted = true;
+          localStream = stream;
           if (self.users.length !== 1 && self.users[self.users.length - 1] === self.user_name) {
             self.call();
           }
-        }
-        function logError(error) {
-          console.log(error);
-        }
-      } else {
-        // New webrtc API
-        navigator.mediaDevices
-          .getUserMedia({ audio: true, video: true })
-          .then(function(stream) {
-            var video = document.getElementById('localVideo');
-            self.addVideoURL('localVideo', stream);
-            video.muted = true;
-            localStream = stream;
-            if (self.users.length !== 1 && self.users[self.users.length - 1] === self.user_name) {
-              self.call();
-            }
-          })
-          .catch(function(err) {
-            console.log(err.name + ': ' + err.message);
-          });
-      }
+        })
+        .catch(function(err) {
+          console.log(err.name + ': ' + err.message);
+        });
     },
     call() {
       this.createPeerConnections();
@@ -188,6 +168,7 @@ export default {
       }
     },
     createPeerConnection(name) {
+      var self = this;
       var pc = (peerConn[name] = new RTCPeerConnection(configuration));
       pc.onicecandidate = event => {
         setTimeout(() => {
@@ -201,10 +182,10 @@ export default {
         });
       };
       pc.onaddstream = function(e) {
-        self.addVideoURL('video', e.stream);
         const child = document.createElement('video');
         child.id = `remote_video_${name}`;
         child.autoplay = 'autoplay';
+        child.srcObject = e.stream;
         document.getElementById('remoteVideo').appendChild(child);
       };
       return pc;
